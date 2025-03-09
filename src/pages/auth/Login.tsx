@@ -51,7 +51,7 @@ const Login: React.FC = () => {
         formData.password
       );
 
-      // Get and store Firestore user data
+      // Get Firestore user data
       const db = getFirestore();
       const usersRef = collection(db, "users");
       const q = query(usersRef, where("email", "==", formData.email));
@@ -63,22 +63,27 @@ const Login: React.FC = () => {
 
       const userData = querySnapshot.docs[0].data();
 
-      // Store auth and user data in context
+      // Always store both pieces of data
+      localStorage.setItem("authUser", JSON.stringify(userCredential.user));
+      localStorage.setItem("userData", JSON.stringify(userData));
+
+      // Update context
       dispatch({ type: "SET_AUTH_USER", payload: userCredential.user });
       dispatch({ type: "SET_USER_DATA", payload: userData });
 
-      // Store auth state if remember me is checked
-      if (formData.rememberMe) {
-        localStorage.setItem("rememberMe", "true");
-        localStorage.setItem("userData", JSON.stringify(userData));
-      }
+      // Remove the rememberMe check since we always want to store auth state
+      console.log("Login successful, redirecting...");
 
-      // Redirect based on user role from Firestore
-      if (userData.role === "admin") navigate("/admin/dashboard");
-      else if (userData.role === "distributor")
-        navigate("/distributor/dashboard");
-      else if (userData.role === "marketer") navigate("/marketer/dashboard");
-      else navigate("/");
+      // Redirect based on role
+      if (userData.role === "marketer") {
+        navigate("/marketer/dashboard", { replace: true });
+      } else if (userData.role === "admin") {
+        navigate("/admin/dashboard", { replace: true });
+      } else if (userData.role === "distributor") {
+        navigate("/distributor/dashboard", { replace: true });
+      } else {
+        navigate("/", { replace: true });
+      }
     } catch (error: any) {
       setErrors({
         submit: error.message || "Failed to login. Please try again.",

@@ -43,28 +43,43 @@ const MarketerDashboard: React.FC = () => {
   // Add auth check effect
   useEffect(() => {
     const checkAuth = async () => {
-      if (!authUser || !userData) {
-        // Try to get data from localStorage first
-        const storedUserData = localStorage.getItem("userData");
-        if (storedUserData) {
-          const parsedUserData = JSON.parse(storedUserData);
-          dispatch({ type: "SET_USER_DATA", payload: parsedUserData });
-          return; // Don't redirect if we found stored data
+      try {
+        // If we don't have context data, try localStorage
+        if (!authUser || !userData) {
+          const storedAuthUser = localStorage.getItem("authUser");
+          const storedUserData = localStorage.getItem("userData");
+
+          if (storedAuthUser && storedUserData) {
+            const parsedAuthUser = JSON.parse(storedAuthUser);
+            const parsedUserData = JSON.parse(storedUserData);
+
+            await Promise.all([
+              dispatch({ type: "SET_AUTH_USER", payload: parsedAuthUser }),
+              dispatch({ type: "SET_USER_DATA", payload: parsedUserData }),
+            ]);
+
+            setLoading(false);
+            return;
+          }
+
+          console.log("No stored auth data found");
+          navigate("/auth/login", { replace: true });
+          return;
         }
 
-        console.log("No auth data found, redirecting to login");
-        navigate("/auth/login");
-        return;
-      }
+        // Verify role
+        if (userData.role !== "marketer") {
+          console.log("Invalid role:", userData.role);
+          navigate("/", { replace: true });
+          return;
+        }
 
-      // Only redirect if explicitly not a marketer
-      if (userData.role && userData.role !== "marketer") {
-        console.log("Invalid role, redirecting to home");
-        navigate("/");
-        return;
+        setLoading(false);
+      } catch (error) {
+        console.error("Auth check error:", error);
+        localStorage.clear(); // Clear potentially corrupted data
+        navigate("/auth/login", { replace: true });
       }
-
-      setLoading(false);
     };
 
     checkAuth();

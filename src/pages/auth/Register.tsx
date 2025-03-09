@@ -64,7 +64,7 @@ const Register: React.FC = () => {
       const userId = userCredential.user.uid;
       const businessId = `MKT${Date.now().toString(36).toUpperCase()}`;
 
-      await setDoc(doc(db, "users", userId), {
+      const userData = {
         userId,
         businessId,
         name: formData.name.trim(),
@@ -78,17 +78,17 @@ const Register: React.FC = () => {
         directDescendants: [],
         createdAt: new Date(),
         lastPurchaseDate: null,
-      });
+      };
 
-      // Update context with new user
-      dispatch({
-        type: "SET_USER",
-        payload: {
-          ...userCredential.user,
-          name: formData.name,
-          role: "marketer",
-        },
-      });
+      await setDoc(doc(db, "users", userId), userData);
+
+      // Store both auth and user data
+      localStorage.setItem("authUser", JSON.stringify(userCredential.user));
+      localStorage.setItem("userData", JSON.stringify(userData));
+
+      // Update context with both pieces of data
+      dispatch({ type: "SET_AUTH_USER", payload: userCredential.user });
+      dispatch({ type: "SET_USER_DATA", payload: userData });
 
       // Show success notification
       dispatch({
